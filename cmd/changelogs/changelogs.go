@@ -9,6 +9,11 @@ import (
 	"strings"
 )
 
+type commitCorrespondence struct {
+	scope string
+	subject string
+}
+
 func main() {
 	repository, err := git.PlainOpen("./")
 	if err != nil {
@@ -61,8 +66,6 @@ func main() {
 
 	nextCommit := headCommit
 
-	fmt.Println(nextCommit.NumParents())
-
 	log, err := repository.Log(&git.LogOptions{
 		From: headRef.Hash(),
 		Order: git.LogOrderCommitterTime,
@@ -72,7 +75,7 @@ func main() {
 		panic(err)
 	}
 
-	allCommitTitles := make([]string, 1)
+	allCommitTitles := make([]string, 0)
 
 	for nextCommit.ID() != mostRecentTagCommit.ID() {
 		currentCommit, err := log.Next()
@@ -90,8 +93,45 @@ func main() {
 		panic(err)
 	}
 
+	goodCommitTitles := make([]string, 0)
+	junkCommitTitles := make([]string, 0)
+
+	goodCommitMap := make(map[string][]commitCorrespondence)
+
 	for _, v := range allCommitTitles {
-		fmt.Println(v)
-		fmt.Println(angularPattern.MatchString(v))
+		if angularPattern.MatchString(v) {
+			goodCommitTitles = append(goodCommitTitles, v)
+			for _, v := range angularPattern.FindAllStringSubmatch(v, 4) {
+				if goodCommitMap[strings.ToLower(v[1])] == nil {
+					goodCommitMap[strings.ToLower(v[1])] = make([]commitCorrespondence, 0)
+				}
+				goodCommitMap[strings.ToLower(v[1])] = append(goodCommitMap[strings.ToLower(v[1])], commitCorrespondence{
+					scope: v[2],
+					subject: v[3],
+				})
+			}
+		} else {
+			junkCommitTitles = append(junkCommitTitles, v)
+		}
+	}
+
+	for k, v := range goodCommitMap {
+		fmt.Println(k)
+		scopes := make(map[string][]string)
+		for _, v := range v {
+			if scopes[v.scope] == nil {
+				scopes[v.scope] = make([]string, 0)
+			}
+
+			scopes[v.scope] = append(scopes[v.scope], v.subject)
+		}
+		for k, v := range scopes {
+			fmt.Print("\t")
+			fmt.Println(k)
+			for _, v := range v {
+				fmt.Print("\t\t")
+				fmt.Println(v)
+			}
+		}
 	}
 }
