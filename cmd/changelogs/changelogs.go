@@ -5,6 +5,7 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"regexp"
 	"strings"
 )
 
@@ -83,5 +84,14 @@ func main() {
 		allCommitTitles = append(allCommitTitles, commitMessageTitle)
 	}
 
-	fmt.Println(allCommitTitles)
+	angularPattern, err := regexp.Compile("^(\\w*)(?:\\((.*)\\))?: (.*)$")
+
+	if err != nil {
+		panic(err)
+	}
+
+	for _, v := range allCommitTitles {
+		fmt.Println(v)
+		fmt.Println(angularPattern.MatchString(v))
+	}
 }
